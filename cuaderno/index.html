@@ -298,6 +298,10 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
 });
 window.addEventListener('resize',()=>{fit()});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&S.uid){clearTimeout(S.timer);flush()}});
+
+async function pull(){if(!S.uid||document.visibilityState!=='visible'||S.saving)return;try{const r=await rget();if(r&&(r._t||0)>(S.data._t||0)){const keep=S.cur;S.data=merge(S.data,r);S.data._t=r._t;lsSet(S.data);
+ const tx=$('#tx');if(!(tx&&document.activeElement===tx)&&!cur&&!drag){if(!S.data.pages.some(p=>p.id===keep))S.cur=lastWritten().id;render()}}}catch(e){}}
+document.addEventListener('visibilitychange',pull);setInterval(pull,60000);
 start();
 </script>
 </body>

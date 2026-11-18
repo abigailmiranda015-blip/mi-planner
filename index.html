@@ -330,6 +330,12 @@ async function flush(k){if(!S.online)return;if(S.writing[k]){S.dirty[k]=true;ret
  if(!S.base[k]){try{const r=await rget(k);if(r)Object.assign(C(k),mrg(r,C(k)));S.base[k]=1;lsSet(k,C(k))}catch(e){S.writing[k]=false;setTimeout(()=>flush(k),2000);return}}
  try{await rset(k,JSON.parse(JSON.stringify(C(k))))}catch(e){S.fails=(S.fails||0)+1;if(S.fails===2)toast('No se pudo guardar en la nube. Revisa tu internet; lo intento de nuevo.');setTimeout(()=>flush(k),3000+Math.random()*2000)}
  S.writing[k]=false;if(S.dirty[k]){S.dirty[k]=false;flush(k)}}
+
+/* traer cambios hechos desde otro lado (p. ej. cuando Claude anota algo) */
+async function pull(){if(!S.online||document.visibilityState!=='visible')return;let ch=false;
+ for(const k of Object.keys(S.cache)){if(S.writing[k]||S.timers[k]&&S.dirty[k])continue;try{const r=await rget(k);if(r&&(r._t||0)>(C(k)._t||0)){Object.assign(C(k),mrg(C(k),r));C(k)._t=r._t;lsSet(k,C(k));ch=true}}catch(e){}}
+ if(ch&&!(typeof busy==='function'&&busy()))render()}
+document.addEventListener('visibilitychange',pull);setInterval(pull,60000);
 /* archivos (fotos y audios) en Supabase Storage */
 const URLS={},PEND={};
 function fileUrl(path,cb){if(!path)return'';if(URLS[path])return URLS[path];if(!PEND[path]&&SB){PEND[path]=SB.storage.from('planner').createSignedUrl(path,60*60*24*7).then(({data})=>{if(data&&data.signedUrl){URLS[path]=data.signedUrl;cb&&cb()}}).catch(()=>{})}return''}
