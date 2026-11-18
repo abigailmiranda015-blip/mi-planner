@@ -80,6 +80,8 @@ body.quick .wrap{padding:6px 16px 80px}
 body.quick .sheet{max-width:640px;min-height:min(70vh,640px);border-radius:22px}
 body.quick .qbar{max-width:672px;margin:0 auto;width:100%}
 a.ib{text-decoration:none;color:inherit}
+.aud{display:flex;align-items:center;gap:6px;background:#fff;border-radius:30px;padding:6px 10px 6px 12px;box-shadow:0 4px 12px rgba(0,0,0,.15);color:var(--fu)}
+.aud svg{width:22px;height:22px;flex:none;pointer-events:none}.aud audio{flex:1;min-width:0;height:36px;pointer-events:auto}
 /* tools */
 .tools{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);display:none;align-items:center;gap:6px;background:#fff;border-radius:30px;padding:6px 10px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:5}
 body.pen .tools{display:flex}
@@ -133,6 +135,7 @@ const I={
  hl:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M9 15l-3 5h6l1-2"/><path d="M8 13l7-9 5 4-7 9z"/></svg>',
  photo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/></svg>',
  stk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6 .6-4.5 4 1.3 6L12 16l-5.4 3.2 1.3-6-4.5-4 6-.6z"/></svg>',
+ mic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>',
  star:'<svg viewBox="0 0 24 24" fill="#fff"><path d="M12 3l2.6 5.6 6 .6-4.5 4 1.3 6L12 16l-5.4 3.2 1.3-6-4.5-4 6-.6z"/></svg>'
 };
 const BGS=[['rayas','Rayas'],['cuadros','Cuadros'],['puntos','Puntos'],['liso','Liso'],['rosa','Rosa'],['aqua','Aqua'],['lila','Lila'],['kraft','Kraft'],['estrellas','Estrellas'],['cebra','Cebra'],['leo','Leopardo'],['fucsia','Fucsia']];
@@ -167,6 +170,7 @@ const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','di
 const fdate=t=>{const d=new Date(t);return d.getDate()+' '+MES[d.getMonth()]};
 
 let SB=null;try{if(window.supabase&&window.PLANNER_CONFIG)SB=supabase.createClient(PLANNER_CONFIG.url,PLANNER_CONFIG.anonKey,{auth:{persistSession:true,autoRefreshToken:true}})}catch(e){}
+let REC=null;
 const S={uid:null,data:null,cur:null,mode:'kb',color:COLORS[0],tool:'pen',timer:null,saving:false,again:false,seen:false};
 
 function lsGet(){try{return JSON.parse(localStorage.getItem('cq_'+KEY))}catch(e){return null}}
@@ -209,7 +213,7 @@ function render(){if(S.data.cur!==S.cur){S.data.cur=S.cur;save()}const p=page(),
  $('#app').style.cssText='display:flex;flex-direction:column;flex:1;min-height:0';
  if(QUICK){document.body.classList.add('quick');$('#app').innerHTML=`<div class="bar qbar"><div class="ttl">${I.star.replace('fill="#fff"','fill="#C93D72" width="22" height="22"')}Nota rápida</div>
   <div class="seg"><button data-a="mode" data-v="kb" class="${S.mode==='kb'?'on':''}" aria-label="Teclado">${I.kb}</button><button data-a="mode" data-v="pen" class="${S.mode==='pen'?'on':''}" aria-label="Lápiz">${I.pen}</button></div>
-  <button class="ib" data-a="prev" aria-label="Hoja anterior" ${i<=0?'disabled style="opacity:.4"':''}>${I.l}</button><button class="ib" data-a="next" aria-label="Hoja siguiente" ${i>=L.length-1?'disabled style="opacity:.4"':''}>${I.r}</button><button class="ib add" data-a="new" aria-label="Hoja nueva">+</button><a class="ib" href="${BASE}" aria-label="Abrir cuaderno">${I.pages}<span class="lb">Ver cuaderno</span></a></div>
+  <button class="ib" data-a="prev" aria-label="Hoja anterior" ${i<=0?'disabled style="opacity:.4"':''}>${I.l}</button><button class="ib" data-a="next" aria-label="Hoja siguiente" ${i>=L.length-1?'disabled style="opacity:.4"':''}>${I.r}</button><button class="ib add" data-a="new" aria-label="Hoja nueva">+</button>${navigator.mediaDevices&&window.MediaRecorder?`<button class="ib ${REC?'on':''}" data-a="rec" aria-label="Audio">${I.mic}</button>`:''}<a class="ib" href="${BASE}" aria-label="Abrir cuaderno">${I.pages}<span class="lb">Ver cuaderno</span></a></div>
  <div class="wrap" id="wrap"><div class="sheet bg-${p.bg||'rayas'} ${p.f==='normal'?'f-normal':''}" id="sheet"><div class="tape"></div><div class="date">${fdate(p.c||p.ts)}</div>
   <textarea id="tx" placeholder="anota algo rápido…" spellcheck="true">${esc(p.text)}</textarea><div id="objs"></div><canvas id="cv"></canvas></div></div>
  <div class="tools">${COLORS.map(c=>`<button class="dot ${S.tool!=='erase'&&S.color===c?'on':''}" style="background:${c}" data-a="col" data-v="${c}" aria-label="Color"></button>`).join('')}<span class="sep"></span><button class="tb ${S.tool==='erase'?'on':''}" data-a="tool" data-v="erase" aria-label="Goma">${I.erase}</button><button class="tb" data-a="undo" aria-label="Deshacer">${I.undo}</button></div>`;}
@@ -219,7 +223,7 @@ function render(){if(S.data.cur!==S.cur){S.data.cur=S.cur;save()}const p=page(),
   <button class="ib" data-a="prev" aria-label="Hoja anterior" ${i<=0?'disabled style="opacity:.4"':''}>${I.l}</button>
   <button class="ib" data-a="next" aria-label="Hoja siguiente" ${i>=L.length-1?'disabled style="opacity:.4"':''}>${I.r}</button>
   <button class="ib" data-a="pages" aria-label="Mis hojas">${I.pages}<span class="lb">Hojas</span></button>
-  <button class="ib" data-a="photo" aria-label="Foto">${I.photo}<span class="lb">Foto</span></button><button class="ib" data-a="stkp" aria-label="Stickers">${I.stk}<span class="lb">Stickers</span></button><button class="ib" data-a="bgp" aria-label="Estilo de la hoja">${I.bg}<span class="lb">Estilo</span></button>
+  <button class="ib" data-a="photo" aria-label="Foto">${I.photo}<span class="lb">Foto</span></button>${navigator.mediaDevices&&window.MediaRecorder?`<button class="ib ${REC?'on':''}" data-a="rec" aria-label="Audio">${I.mic}<span class="lb">${REC?'Detener':'Audio'}</span></button>`:''}<button class="ib" data-a="stkp" aria-label="Stickers">${I.stk}<span class="lb">Stickers</span></button><button class="ib" data-a="bgp" aria-label="Estilo de la hoja">${I.bg}<span class="lb">Estilo</span></button>
   <button class="ib add" data-a="new">+ <span class="lb">Hoja nueva</span></button>
  </div>
  <div class="wrap" id="wrap"><div class="sheet bg-${p.bg||'rayas'} ${p.f==='normal'?'f-normal':''}" id="sheet"><div class="tape"></div><div class="date">${fdate(p.c||p.ts)}</div>
@@ -253,20 +257,20 @@ document.addEventListener('touchmove',e=>{if(S.mode==='pen'&&e.target.id==='cv')
 /* fotos y stickers */
 S.urls=(()=>{try{return JSON.parse(localStorage.getItem('cq_urls'))||{}}catch(e){return{}}})();S.sel=null;
 async function urlOf(path){const c=S.urls[path];if(c&&c.e>Date.now())return c.u;const{data,error}=await SB.storage.from('planner').createSignedUrl(path,60*60*24*7);if(error)throw error;S.urls[path]={u:data.signedUrl,e:Date.now()+1000*60*60*24*6};try{localStorage.setItem('cq_urls',JSON.stringify(S.urls))}catch(e){}return data.signedUrl}
-function objHTML(o){const inner=o.t==='img'?`<img alt="" data-path="${esc(o.path)}">`:stHTML(o.k,o.c);
+function objHTML(o){const inner=o.t==='img'?`<img alt="" data-path="${esc(o.path)}">`:o.t==='aud'?`<div class="aud">${I.mic}<audio controls preload="none" data-apath="${esc(o.path)}"></audio></div>`:stHTML(o.k,o.c);
  return`<div class="obj ${S.sel===o.id?'sel':''}" data-o="${o.id}" style="left:${o.x/100}%;top:0;width:${o.t==='st'&&o.k.startsWith('t:')?'auto':o.w/100+'%'};transform:translateY(${0}px) rotate(${o.r||0}deg)">${inner}</div>`}
 function renderObjs(){const L=$('#objs');if(!L)return;const p=page();p.s=p.s||[];L.innerHTML=p.s.map(objHTML).join('');placeObjs();
- L.querySelectorAll('img[data-path]').forEach(async im=>{try{im.src=await urlOf(im.dataset.path);im.onload=()=>fit()}catch(e){}});
+ L.querySelectorAll('audio[data-apath]').forEach(async au=>{try{au.src=await urlOf(au.dataset.apath)}catch(e){}});L.querySelectorAll('img[data-path]').forEach(async im=>{try{im.src=await urlOf(im.dataset.path);im.onload=()=>fit()}catch(e){}});
  const old=$('.otb');if(old)old.remove();if(S.sel&&p.s.some(o=>o.id===S.sel)){const t=document.createElement('div');t.className='otb';t.innerHTML='<button data-a="osmall">− chico</button><button data-a="obig">+ grande</button><button data-a="orot">↻ girar</button><button data-a="ofront">al frente</button><button class="x" data-a="odel">quitar</button>';document.body.appendChild(t)}}
 function placeObjs(){const sh=$('#sheet');if(!sh)return;const W=sh.clientWidth;for(const o of page().s||[]){const el=document.querySelector(`[data-o="${o.id}"]`);if(el){el.style.left=(o.x*W/10000)+'px';el.style.top=(o.y*W/10000)+'px';if(o.t==='st'&&o.k.startsWith('t:'))el.style.fontSize='';el.style.transform=`rotate(${o.r||0}deg)`+(o.t==='st'&&o.k.startsWith('t:')?` scale(${o.w/2600})`:'');if(!(o.t==='st'&&o.k.startsWith('t:')))el.style.width=(o.w*W/10000)+'px'}}}
 function addObj(o){const p=page();p.s=p.s||[];const wrap=$('#wrap'),sh=$('#sheet'),W=sh.clientWidth;const yView=(wrap.scrollTop+wrap.clientHeight*0.3)*10000/W;
- const jit=(p.s.length%4)*700;Object.assign(o,{id:uid(),x:Math.round(5000-(o.t==='st'&&o.k.startsWith('t:')?1300:o.w/2)+jit-1000),y:Math.round(yView+jit),r:o.t==='img'?-2:Math.round(Math.random()*16-8)});p.s.push(o);S.sel=o.id;p.ts=Date.now();save();if(S.mode==='pen'){S.mode='kb';render()}else renderObjs()}
+ const jit=(p.s.length%4)*700;Object.assign(o,{id:uid(),x:Math.round(5000-(o.t==='st'&&o.k.startsWith('t:')?1300:o.w/2)+jit-1000),y:Math.round(yView+jit),r:o.t==='img'?-2:o.t==='aud'?0:Math.round(Math.random()*16-8)});p.s.push(o);S.sel=o.id;p.ts=Date.now();save();if(S.mode==='pen'){S.mode='kb';render()}else renderObjs()}
 function objAct(a){const p=page(),i=p.s.findIndex(o=>o.id===S.sel);if(i<0)return;const o=p.s[i];
  if(a==='obig')o.w=Math.min(9500,Math.round(o.w*1.2));if(a==='osmall')o.w=Math.max(500,Math.round(o.w/1.2));if(a==='orot')o.r=((o.r||0)+15)%360;
- if(a==='ofront'){p.s.splice(i,1);p.s.push(o)}if(a==='odel'){p.s.splice(i,1);S.sel=null;if(o.t==='img'){SB.storage.from('planner').remove([o.path]).catch(()=>{})}}
+ if(a==='ofront'){p.s.splice(i,1);p.s.push(o)}if(a==='odel'){p.s.splice(i,1);S.sel=null;if(o.t==='img'||o.t==='aud'){SB.storage.from('planner').remove([o.path]).catch(()=>{})}}
  p.ts=Date.now();save();renderObjs()}
 let drag=null;
-document.addEventListener('pointerdown',e=>{const el=e.target.closest&&e.target.closest('.obj');if(!el){if(S.sel&&!e.target.closest('.otb')){S.sel=null;renderObjs()}return}
+document.addEventListener('pointerdown',e=>{if(e.target.closest&&e.target.closest('audio'))return;const el=e.target.closest&&e.target.closest('.obj');if(!el){if(S.sel&&!e.target.closest('.otb')){S.sel=null;renderObjs()}return}
  e.preventDefault();const o=page().s.find(x=>x.id===el.dataset.o);if(!o)return;if(S.sel!==o.id){S.sel=o.id;renderObjs()}
  const W=$('#sheet').clientWidth;drag={o,sx:e.clientX,sy:e.clientY,ox:o.x,oy:o.y,k:10000/W,moved:false};});
 document.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.sx,dy=e.clientY-drag.sy;if(Math.abs(dx)+Math.abs(dy)>3)drag.moved=true;drag.o.x=Math.round(drag.ox+dx*drag.k);drag.o.y=Math.max(0,Math.round(drag.oy+dy*drag.k));placeObjs()});
@@ -292,6 +296,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  else if(a==='stkp'){panel(`<h3>Stickers</h3><div class="stk">${LIB.filter(x=>!x[0].startsWith('t:')).map(([k,c])=>`<button data-a="addst" data-v="${k}|${c}">${stHTML(k,c)}</button>`).join('')}</div><div class="stk stkt">${TXT.map(([k,c])=>`<button data-a="addst" data-v="${k}|${c}">${stHTML(k,c)}</button>`).join('')}</div>`)}
  else if(a==='addst'){const[k,c]=v.split('|');addObj({t:'st',k,c,w:k.startsWith('t:')?2600:1300});$('.ov').remove()}
  else if(a==='obig'||a==='osmall'||a==='orot'||a==='odel'||a==='ofront'){objAct(a)}
+ else if(a==='rec'){if(REC){REC.stop();return}navigator.mediaDevices.getUserMedia({audio:true}).then(st=>{const mt=MediaRecorder.isTypeSupported('audio/mp4')?'audio/mp4':'audio/webm';const r=new MediaRecorder(st,{mimeType:mt});const ch=[];r.ondataavailable=ev=>ev.data.size&&ch.push(ev.data);r.onstop=async()=>{st.getTracks().forEach(t=>t.stop());REC=null;render();toast('Guardando audio…');try{const blob=new Blob(ch,{type:mt});const path=S.uid+'/cuaderno/'+Date.now().toString(36)+uid()+(mt==='audio/mp4'?'.m4a':'.webm');const{error}=await SB.storage.from('planner').upload(path,blob,{contentType:mt,upsert:false});if(error)throw error;addObj({t:'aud',path,w:5200});toast('Audio guardado.')}catch(err){toast('No pude guardar el audio.')}};r.start();REC=r;render();toast('Grabando… toca el micrófono para detener.')}).catch(()=>toast('Necesito permiso para usar el micrófono.'))}
  else if(a==='go'){S.cur=v;$('.ov').remove();render()}
  else if(a==='delask'){b.outerHTML='<button class="del" data-a="del"><b>Sí, borrar la hoja '+(i+1)+' para siempre</b></button>'}
  else if(a==='del'){S.data.del.push(S.cur);S.data.pages=S.data.pages.filter(p=>p.id!==S.cur);if(!S.data.pages.length)newPage();S.cur=lastWritten().id;save();$('.ov').remove();render();toast('Hoja borrada')}
