@@ -362,7 +362,7 @@ function dayEntries(ds){const out=[];
 function findEntry(src,id,ds){const L=src==='m'?mItems(ds):list(src);return{L,i:L.findIndex(t=>t.id===id),key:src==='m'?mk(ds):src}}
 function pageKey(){const t=UI.tab;if(['lib','deb','tra'].includes(t)&&UI.sub[t]==='cuad')return'pg_cuad_'+(UI.sel.nb||'x');if(t==='cal')return'pg_cal_'+UI.day;if(t==='lib'){const s=UI.sub.lib;return'pg_lib_'+s+(s==='diario'?'_'+UI.ldate:'')}if(t==='deb')return'pg_deb_'+UI.sub.deb;if(t==='tra')return'pg_tra';if(t==='met')return'pg_met';return'pg_cover'}
 /* ---------- piezas ---------- */
-const head=(kick,title,c,nav='')=>`<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;--c:${c}"><div><div class="kick">${kick}</div><h1 class="ttl">${title}</h1></div>${nav}</div>`;
+const head=(kick,title,c,nav='')=>`<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;--c:${c}"><div><div class="kick">${kick}</div>${title?`<h1 class="ttl">${title}</h1>`:""}</div>${nav}</div>`;
 const navB=(c,today=true)=>`<div class="nav" style="--c:${c}"><button data-a="prev" aria-label="Anterior">${I.l}</button><button data-a="next" aria-label="Siguiente">${I.r}</button>${today?'<button class="hoy" data-a="hoy">Hoy</button>':''}</div>`;
 const sec=(t,c,body)=>`<section class="sec"><h2><i style="--c:${c}"></i>${t}</h2>${body}</section>`;
 const lined=(k,p,label,rows=4,cls='',ph='')=>`<textarea class="lined ${cls}" rows="${rows}" data-k="${k}" data-p="${p}" aria-label="${label}" placeholder="${ph}">${val(k,p)}</textarea>`;
@@ -409,11 +409,8 @@ function vLib(){const s=UI.sub.lib,c=SP.lib[1],sub=pills(LSUB,s,'sub','#E4709A')
   const M=[['Radiante','#F5E3A3'],['Bien','#B5C9A8'],['Normal','#A9D6E5'],['Cansada','#C9B6E4'],['Triste','#E8B4BC']];
   return[`${head('PERSONAL · DIARIO',cap1(DOWL[wdi(d)])+' '+d.getDate(),c,navB(c))}${sub}
   <textarea class="lined hand" style="flex:1;min-height:440px" data-k="${k}" data-p="${p}.journal" aria-label="Mi diario" placeholder="querido diario…">${val(k,p+'.journal')}</textarea>`,
-  `${head(MESES[d.getMonth()].toUpperCase()+' '+d.getFullYear(),'Cómo estoy',c)}
+  `${head(MESES[d.getMonth()].toUpperCase()+' '+d.getFullYear(),'',c)}
   ${(()=>{const E=(()=>{const f=UI.f;UI.f='all';const r=dayEntries(UI.ldate);UI.f=f;return r})();return sec('EN TU CALENDARIO ESTE DÍA','#C93D72',E.length?E.map(t=>`<button class="an" data-a="pick" data-d="${UI.ldate}" style="--c:${SP[t.sp][1]}"><i></i><span class="sn"><span class="tg">${SP[t.sp][0].toUpperCase()}${t.time?' · '+esc(t.time):''}</span>${esc(t.t)}</span></button>`).join(''):`<button class="an" data-a="pick" data-d="${UI.ldate}" style="--c:#C93D72"><i></i><span class="sn" style="font:14px 'DM Sans',sans-serif;color:var(--mu)">Nada en el calendario. Toca para anotar algo.</span></button>`)})()}
-  ${sec('CÓMO ME SIENTO',c,`<div class="moods">${M.map(([n,mc],i)=>`<button class="mood ${D.mood===i?'on':''}" data-a="mood" data-n="${i}" aria-pressed="${D.mood===i}"><i style="--c:${mc}"></i>${n}</button>`).join('')}</div>`)}
-  ${sec('HOY AGRADEZCO',c,lined(k,p+'.grat','Hoy agradezco',3,'hand'))}
-  ${sec('PARA MAÑANA',c,lined(k,p+'.manana','Para mañana',3))}
   <div class="hint">${I.pen.replace('currentColor','#C93D72')}Esta hoja también es tuya: escribe con el lápiz o pega fotos.</div>`]}
  if(s==='aprender'){const L=arr(K,'temas');const cur=L.find(t=>t.id===UI.sel.tema)||L[0];
   return[`${head('PERSONAL · APRENDER','Quiero aprender',c)}${sub}
