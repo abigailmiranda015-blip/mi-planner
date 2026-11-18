@@ -327,8 +327,8 @@ function load(k){if(S.cache[k])return Promise.resolve(S.cache[k]);if(S.loading[k
 const C=k=>S.cache[k]||(S.cache[k]={});
 function save(k){const v=C(k);v._t=Date.now();lsSet(k,v);clearTimeout(S.timers[k]);S.timers[k]=setTimeout(()=>flush(k),700)}
 async function flush(k){if(!S.online)return;if(S.writing[k]){S.dirty[k]=true;return}S.writing[k]=true;
- if(!S.base[k]){try{const r=rget(k);if(r)Object.assign(C(k),mrg(r,C(k)));S.base[k]=1;lsSet(k,C(k))}catch(e){S.writing[k]=false;setTimeout(()=>flush(k),2000);return}}
- try{await rset(k,JSON.parse(JSON.stringify(C(k))))}catch(e){setTimeout(()=>flush(k),3000+Math.random()*2000)}
+ if(!S.base[k]){try{const r=await rget(k);if(r)Object.assign(C(k),mrg(r,C(k)));S.base[k]=1;lsSet(k,C(k))}catch(e){S.writing[k]=false;setTimeout(()=>flush(k),2000);return}}
+ try{await rset(k,JSON.parse(JSON.stringify(C(k))))}catch(e){S.fails=(S.fails||0)+1;if(S.fails===2)toast('No se pudo guardar en la nube. Revisa tu internet; lo intento de nuevo.');setTimeout(()=>flush(k),3000+Math.random()*2000)}
  S.writing[k]=false;if(S.dirty[k]){S.dirty[k]=false;flush(k)}}
 /* archivos (fotos y audios) en Supabase Storage */
 const URLS={},PEND={};
