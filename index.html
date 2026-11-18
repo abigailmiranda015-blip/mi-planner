@@ -306,19 +306,24 @@ const LIB=[['heart','leo'],['star','leo'],['heart','zebra'],['star','zebra'],['b
  ['t:self care','rosa'],['t:hoy sí','fucsia'],['t:¡tú puedes!','aqua'],['t:boss','camel'],['t:importante','rosa']];
 function stHTML(k,c){if(k.startsWith('t:'))return`<span class="pill" style="--c:${COL[c]||c};${c==='fucsia'?'color:#fff':''}">${esc(k.slice(2))}</span>`;return`<svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">${GOLDDEF}${SV[k](fillOf(c))}</svg>`}
 /* ---------- guardado ---------- */
-const S={db:null,id:null,cache:{},loading:{},timers:{},writing:{},dirty:{},online:false};
+const S={base:{},db:null,id:null,cache:{},loading:{},timers:{},writing:{},dirty:{},online:false};
 const lsGet=k=>{try{return JSON.parse(localStorage.getItem('pl_'+k))}catch(e){return null}};
 const lsSet=(k,v)=>{try{localStorage.setItem('pl_'+k,JSON.stringify(v))}catch(e){}};
 let SB=null;
 try{if(window.supabase&&window.PLANNER_CONFIG)SB=window.supabase.createClient(PLANNER_CONFIG.url,PLANNER_CONFIG.anonKey,{auth:{persistSession:true,autoRefreshToken:true}})}catch(e){}
 async function rget(k){const{data,error}=await SB.from('docs').select('data').eq('key',k).maybeSingle();if(error)throw error;return data?data.data:null}
 async function rset(k,v){const{error}=await SB.from('docs').upsert({user_id:S.id,key:k,data:v,updated_at:new Date().toISOString()},{onConflict:'user_id,key'});if(error)throw error}
+function mrg(a,b){if(b===undefined||b===null||b==='')return a===undefined?b:a;
+ if(Array.isArray(a)&&Array.isArray(b)){const idd=x=>x&&typeof x==='object'&&x.id!=null;if(a.every(idd)&&b.every(idd)){const out=b.map(x=>{const r=a.find(y=>y.id===x.id);return r?mrg(r,x):x});for(const y of a)if(!b.some(x=>x.id===y.id))out.push(y);return out}return b.length?b:a}
+ if(a&&b&&typeof a==='object'&&typeof b==='object'&&!Array.isArray(a)&&!Array.isArray(b)){const o=Object.assign({},a);for(const k in b)o[k]=(k in a)?mrg(a[k],b[k]):b[k];return o}
+ return b}
 function load(k){if(S.cache[k])return Promise.resolve(S.cache[k]);if(S.loading[k])return S.loading[k];
- S.loading[k]=(async()=>{let v=lsGet(k)||{};if(S.online){try{const r0=await rget(k);if(r0){const r=JSON.parse(JSON.stringify(r0));if((r._t||0)>=(v._t||0))v=r;else setTimeout(()=>flush(k),50)}else if(v._t)setTimeout(()=>flush(k),50)}catch(e){}}
+ S.loading[k]=(async()=>{let v=lsGet(k)||{};if(S.online){try{const r0=await rget(k);if(r0){const r=JSON.parse(JSON.stringify(r0));S.base[k]=1;if((r._t||0)>=(v._t||0))v=r;else{v=mrg(r,v);setTimeout(()=>flush(k),50)}}else{S.base[k]=1;if(v._t)setTimeout(()=>flush(k),50)}}catch(e){}}
   S.cache[k]=v;lsSet(k,v);delete S.loading[k];return v})();return S.loading[k]}
 const C=k=>S.cache[k]||(S.cache[k]={});
 function save(k){const v=C(k);v._t=Date.now();lsSet(k,v);clearTimeout(S.timers[k]);S.timers[k]=setTimeout(()=>flush(k),700)}
 async function flush(k){if(!S.online)return;if(S.writing[k]){S.dirty[k]=true;return}S.writing[k]=true;
+ if(!S.base[k]){try{const r=rget(k);if(r)Object.assign(C(k),mrg(r,C(k)));S.base[k]=1;lsSet(k,C(k))}catch(e){S.writing[k]=false;setTimeout(()=>flush(k),2000);return}}
  try{await rset(k,JSON.parse(JSON.stringify(C(k))))}catch(e){setTimeout(()=>flush(k),3000+Math.random()*2000)}
  S.writing[k]=false;if(S.dirty[k]){S.dirty[k]=false;flush(k)}}
 /* archivos (fotos y audios) en Supabase Storage */
