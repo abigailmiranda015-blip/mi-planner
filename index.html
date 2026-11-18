@@ -171,7 +171,8 @@ body.stk .s{pointer-events:auto;cursor:grab;touch-action:none}
 .tabs .home{background:var(--zeb) 0 0/48px 48px}.tabs .home svg{background:#FBF5F2;border-radius:50%;padding:5px;width:34px;height:34px;box-shadow:0 1px 3px rgba(0,0,0,.2)}.tabs .home svg path{fill:#C93D72}
 .cover{background:var(--zc) center/cover no-repeat!important}
 .cover .plate{background:none!important;border:0!important;box-shadow:none!important;width:86%!important}
-.cover .plate h1,.cover .plate .de{text-shadow:0 2px 6px rgba(40,20,15,.35)}
+.cover .plate h1,.cover .plate .de{text-shadow:-2px -2px 0 #1a1414,2px -2px 0 #1a1414,-2px 2px 0 #1a1414,2px 2px 0 #1a1414,0 -2px 0 #1a1414,0 2px 0 #1a1414,-2px 0 0 #1a1414,2px 0 0 #1a1414,0 4px 8px rgba(0,0,0,.35)!important}
+.cover .plate .k{text-shadow:-1px -1px 0 #1a1414,1px -1px 0 #1a1414,-1px 1px 0 #1a1414,1px 1px 0 #1a1414,0 -1px 0 #1a1414,0 1px 0 #1a1414,-1px 0 0 #1a1414,1px 0 0 #1a1414!important}
 .cover .plate .k{color:#E4709A!important;font-weight:700;text-shadow:0 1px 3px rgba(40,20,15,.4)}
 .cover .plate .k{color:#7A6669}
 .cover .plate h1{font:italic 500 clamp(56px,10vw,88px)/1 'Playfair Display',Georgia,serif!important;color:#C93D72;letter-spacing:0!important}
@@ -381,7 +382,7 @@ function vCal(){
  const L=`${head('CALENDARIO · '+y,cap1(MESES[m]),'#C93D72',navB('#C93D72')+'<button class="tl" data-a="tab" data-v="cover" style="margin-left:6px">Portada</button>')}
  ${pills([['all','Todo','#C93D72'],['lib','Personal',SP.lib[1]],['deb','Deberes',SP.deb[1]],['tra','Trabajo',SP.tra[1]]].map(([v,l,d])=>[v,l,d]),UI.f,'filt','#C93D72')}
  <div class="cal">${['L','M','M','J','V','S','D'].map(d=>`<div class="wd">${d}</div>`).join('')}${cells}</div>
- ${sec('MIS CUADERNOS','#C93D72',nbStrip(['lib','deb','tra']))}`;
+`;
  const d=parse(UI.day),E=dayEntries(UI.day);
  const it=t=>`<div class="it" style="--c:${SP[t.sp][1]}"><span class="hr">${esc(t.time||'')}</span><input type="checkbox" class="chk" data-a="echk" data-src="${t.src}" data-i="${t.id}" ${t.done?'checked':''} aria-label="Hecho"><input type="text" class="t ${t.done?'done':''}" value="${esc(t.t)}" data-et="${t.src}|${t.id}" aria-label="Actividad"><span class="tag" style="--c:${SP[t.sp][1]}">${SP[t.sp][0].toUpperCase()}</span>${t.time&&downloads?`<button class="bell" data-a="ics" data-src="${t.src}" data-i="${t.id}" aria-label="Recordatorio en mi calendario">${I.bell}</button>`:''}<button class="x" data-a="edel" data-src="${t.src}" data-i="${t.id}" aria-label="Borrar">${I.x}</button></div>`;
  const timed=E.filter(t=>t.time),un=E.filter(t=>!t.time);
