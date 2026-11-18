@@ -81,6 +81,7 @@ body.quick .sheet{max-width:640px;min-height:min(70vh,640px);border-radius:22px}
 body.quick .qbar{max-width:672px;margin:0 auto;width:100%}
 a.ib{text-decoration:none;color:inherit}
 .aud{display:flex;align-items:center;gap:6px;background:#fff;border-radius:30px;padding:6px 10px 6px 12px;box-shadow:0 4px 12px rgba(0,0,0,.15);color:var(--fu)}
+.adel{width:30px;height:30px;border-radius:50%;flex:none;color:#B23A5C;font-size:15px;pointer-events:auto}.adel:active{background:#FBE4EC}
 .aud svg{width:22px;height:22px;flex:none;pointer-events:none}.aud audio{flex:1;min-width:0;height:36px;pointer-events:auto}
 /* tools */
 .tools{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);display:none;align-items:center;gap:6px;background:#fff;border-radius:30px;padding:6px 10px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:5}
@@ -257,7 +258,7 @@ document.addEventListener('touchmove',e=>{if(S.mode==='pen'&&e.target.id==='cv')
 /* fotos y stickers */
 S.urls=(()=>{try{return JSON.parse(localStorage.getItem('cq_urls'))||{}}catch(e){return{}}})();S.sel=null;
 async function urlOf(path){const c=S.urls[path];if(c&&c.e>Date.now())return c.u;const{data,error}=await SB.storage.from('planner').createSignedUrl(path,60*60*24*7);if(error)throw error;S.urls[path]={u:data.signedUrl,e:Date.now()+1000*60*60*24*6};try{localStorage.setItem('cq_urls',JSON.stringify(S.urls))}catch(e){}return data.signedUrl}
-function objHTML(o){const inner=o.t==='img'?`<img alt="" data-path="${esc(o.path)}">`:o.t==='aud'?`<div class="aud">${I.mic}<audio controls preload="none" data-apath="${esc(o.path)}"></audio></div>`:stHTML(o.k,o.c);
+function objHTML(o){const inner=o.t==='img'?`<img alt="" data-path="${esc(o.path)}">`:o.t==='aud'?`<div class="aud">${I.mic}<audio controls preload="none" data-apath="${esc(o.path)}"></audio><button class="adel" data-a="odelid" data-v="${o.id}" aria-label="Borrar audio">✕</button></div>`:stHTML(o.k,o.c);
  return`<div class="obj ${S.sel===o.id?'sel':''}" data-o="${o.id}" style="left:${o.x/100}%;top:0;width:${o.t==='st'&&o.k.startsWith('t:')?'auto':o.w/100+'%'};transform:translateY(${0}px) rotate(${o.r||0}deg)">${inner}</div>`}
 function renderObjs(){const L=$('#objs');if(!L)return;const p=page();p.s=p.s||[];L.innerHTML=p.s.map(objHTML).join('');placeObjs();
  L.querySelectorAll('audio[data-apath]').forEach(async au=>{try{au.src=await urlOf(au.dataset.apath)}catch(e){}});L.querySelectorAll('img[data-path]').forEach(async im=>{try{im.src=await urlOf(im.dataset.path);im.onload=()=>fit()}catch(e){}});
@@ -270,7 +271,7 @@ function objAct(a){const p=page(),i=p.s.findIndex(o=>o.id===S.sel);if(i<0)return
  if(a==='ofront'){p.s.splice(i,1);p.s.push(o)}if(a==='odel'){p.s.splice(i,1);S.sel=null;if(o.t==='img'||o.t==='aud'){SB.storage.from('planner').remove([o.path]).catch(()=>{})}}
  p.ts=Date.now();save();renderObjs()}
 let drag=null;
-document.addEventListener('pointerdown',e=>{if(e.target.closest&&e.target.closest('audio'))return;const el=e.target.closest&&e.target.closest('.obj');if(!el){if(S.sel&&!e.target.closest('.otb')){S.sel=null;renderObjs()}return}
+document.addEventListener('pointerdown',e=>{if(e.target.closest&&e.target.closest('audio,.adel'))return;const el=e.target.closest&&e.target.closest('.obj');if(!el){if(S.sel&&!e.target.closest('.otb')){S.sel=null;renderObjs()}return}
  e.preventDefault();const o=page().s.find(x=>x.id===el.dataset.o);if(!o)return;if(S.sel!==o.id){S.sel=o.id;renderObjs()}
  const W=$('#sheet').clientWidth;drag={o,sx:e.clientX,sy:e.clientY,ox:o.x,oy:o.y,k:10000/W,moved:false};});
 document.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.sx,dy=e.clientY-drag.sy;if(Math.abs(dx)+Math.abs(dy)>3)drag.moved=true;drag.o.x=Math.round(drag.ox+dx*drag.k);drag.o.y=Math.max(0,Math.round(drag.oy+dy*drag.k));placeObjs()});
@@ -295,6 +296,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  else if(a==='photo'){$('#fi').click()}
  else if(a==='stkp'){panel(`<h3>Stickers</h3><div class="stk">${LIB.filter(x=>!x[0].startsWith('t:')).map(([k,c])=>`<button data-a="addst" data-v="${k}|${c}">${stHTML(k,c)}</button>`).join('')}</div><div class="stk stkt">${TXT.map(([k,c])=>`<button data-a="addst" data-v="${k}|${c}">${stHTML(k,c)}</button>`).join('')}</div>`)}
  else if(a==='addst'){const[k,c]=v.split('|');addObj({t:'st',k,c,w:k.startsWith('t:')?2600:1300});$('.ov').remove()}
+ else if(a==='odelid'){S.sel=v;objAct('odel');toast('Audio borrado')}
  else if(a==='obig'||a==='osmall'||a==='orot'||a==='odel'||a==='ofront'){objAct(a)}
  else if(a==='rec'){if(REC){REC.stop();return}navigator.mediaDevices.getUserMedia({audio:true}).then(st=>{const mt=MediaRecorder.isTypeSupported('audio/mp4')?'audio/mp4':'audio/webm';const r=new MediaRecorder(st,{mimeType:mt});const ch=[];r.ondataavailable=ev=>ev.data.size&&ch.push(ev.data);r.onstop=async()=>{st.getTracks().forEach(t=>t.stop());REC=null;render();toast('Guardando audio…');try{const blob=new Blob(ch,{type:mt});const path=S.uid+'/cuaderno/'+Date.now().toString(36)+uid()+(mt==='audio/mp4'?'.m4a':'.webm');const{error}=await SB.storage.from('planner').upload(path,blob,{contentType:mt,upsert:false});if(error)throw error;addObj({t:'aud',path,w:5200});toast('Audio guardado.')}catch(err){toast('No pude guardar el audio.')}};r.start();REC=r;render();toast('Grabando… toca el micrófono para detener.')}).catch(()=>toast('Necesito permiso para usar el micrófono.'))}
  else if(a==='go'){S.cur=v;$('.ov').remove();render()}
