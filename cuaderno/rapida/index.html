@@ -173,7 +173,7 @@ function lsGet(){try{return JSON.parse(localStorage.getItem('cq_'+KEY))}catch(e)
 function lsSet(v){try{localStorage.setItem('cq_'+KEY,JSON.stringify(v))}catch(e){}}
 // une sin perder nada: hojas por id, gana la más reciente
 function merge(a,b){if(!a)return b;if(!b)return a;const m={};for(const p of a.pages||[])m[p.id]=p;for(const p of b.pages||[])if(!m[p.id]||(p.ts||0)>=(m[p.id].ts||0))m[p.id]=p;
- const del=new Set([...(a.del||[]),...(b.del||[])]);return{_t:Math.max(a._t||0,b._t||0),del:[...del],pages:Object.values(m).filter(p=>!del.has(p.id)).sort((x,y)=>(x.n||0)-(y.n||0))}}
+ const del=new Set([...(a.del||[]),...(b.del||[])]);return{_t:Math.max(a._t||0,b._t||0),cur:((b._t||0)>=(a._t||0)?b.cur:a.cur)||a.cur||b.cur,del:[...del],pages:Object.values(m).filter(p=>!del.has(p.id)).sort((x,y)=>(x.n||0)-(y.n||0))}}
 async function rget(){const{data,error}=await SB.from('docs').select('data').eq('key',KEY).maybeSingle();if(error)throw error;return data?data.data:null}
 async function rset(v){const{error}=await SB.from('docs').upsert({user_id:S.uid,key:KEY,data:v,updated_at:new Date().toISOString()},{onConflict:'user_id,key'});if(error)throw error}
 function save(){S.data._t=Date.now();lsSet(S.data);clearTimeout(S.timer);S.timer=setTimeout(flush,600)}
@@ -194,8 +194,7 @@ async function start(){
  let local=lsGet(),remote=null;try{remote=await rget();S.seen=true}catch(e){}
  if(remote&&local&&(local._t||0)>(remote._t||0))S.data=merge(remote,local);else S.data=remote||local||{_t:0,pages:[],del:[]};
  S.data.pages=S.data.pages||[];S.data.del=S.data.del||[];
- if(!S.data.pages.length)newPage();S.cur=lastWritten().id;
- if(QUICK){const lp=sorted().slice(-1)[0];const empty=lp&&!(lp.text||'').trim()&&!(lp.k||[]).length&&!(lp.s||[]).length;if(empty)S.cur=lp.id;else newPage()}
+ if(!S.data.pages.length)newPage();S.cur=(S.data.cur&&S.data.pages.some(p=>p.id===S.data.cur))?S.data.cur:lastWritten().id;
  lsSet(S.data);
  if(local&&remote&&(local._t||0)>(remote._t||0))flush();
  render();
@@ -206,11 +205,11 @@ function vLogin(err=''){document.body.className='';$('#app').style.cssText='disp
  <div class="err">${esc(err)}</div><button class="go">Entrar</button></form>`;
  $('#lf').onsubmit=async e=>{e.preventDefault();const f=e.target;const{error}=await SB.auth.signInWithPassword({email:f.e.value.trim(),password:f.p.value});if(error)return vLogin('Correo o contraseña no coinciden.');$('#app').style.cssText='';start()}}
 
-function render(){const p=page(),L=sorted(),i=L.findIndex(x=>x.id===p.id);document.body.className=S.mode==='pen'?'pen':'';
+function render(){if(S.data.cur!==S.cur){S.data.cur=S.cur;save()}const p=page(),L=sorted(),i=L.findIndex(x=>x.id===p.id);document.body.className=S.mode==='pen'?'pen':'';
  $('#app').style.cssText='display:flex;flex-direction:column;flex:1;min-height:0';
  if(QUICK){document.body.classList.add('quick');$('#app').innerHTML=`<div class="bar qbar"><div class="ttl">${I.star.replace('fill="#fff"','fill="#C93D72" width="22" height="22"')}Nota rápida</div>
   <div class="seg"><button data-a="mode" data-v="kb" class="${S.mode==='kb'?'on':''}" aria-label="Teclado">${I.kb}</button><button data-a="mode" data-v="pen" class="${S.mode==='pen'?'on':''}" aria-label="Lápiz">${I.pen}</button></div>
-  <a class="ib" href="${BASE}" aria-label="Abrir cuaderno">${I.pages}<span class="lb">Ver cuaderno</span></a></div>
+  <button class="ib" data-a="prev" aria-label="Hoja anterior" ${i<=0?'disabled style="opacity:.4"':''}>${I.l}</button><button class="ib" data-a="next" aria-label="Hoja siguiente" ${i>=L.length-1?'disabled style="opacity:.4"':''}>${I.r}</button><button class="ib add" data-a="new" aria-label="Hoja nueva">+</button><a class="ib" href="${BASE}" aria-label="Abrir cuaderno">${I.pages}<span class="lb">Ver cuaderno</span></a></div>
  <div class="wrap" id="wrap"><div class="sheet bg-${p.bg||'rayas'} ${p.f==='normal'?'f-normal':''}" id="sheet"><div class="tape"></div><div class="date">${fdate(p.c||p.ts)}</div>
   <textarea id="tx" placeholder="anota algo rápido…" spellcheck="true">${esc(p.text)}</textarea><div id="objs"></div><canvas id="cv"></canvas></div></div>
  <div class="tools">${COLORS.map(c=>`<button class="dot ${S.tool!=='erase'&&S.color===c?'on':''}" style="background:${c}" data-a="col" data-v="${c}" aria-label="Color"></button>`).join('')}<span class="sep"></span><button class="tb ${S.tool==='erase'?'on':''}" data-a="tool" data-v="erase" aria-label="Goma">${I.erase}</button><button class="tb" data-a="undo" aria-label="Deshacer">${I.undo}</button></div>`;}
