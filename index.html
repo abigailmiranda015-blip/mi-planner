@@ -213,6 +213,17 @@ body.stk .s{pointer-events:auto;cursor:grab;touch-action:none}
 .login input{font-size:16px;padding:12px 14px;border-radius:12px;background:#fff;border:1px solid var(--ln)}
 .login .err{color:#B3261E;font-size:13px;min-height:18px}
 .rec{background:#C93D72!important;color:#fff!important}.rec svg{color:#fff!important}
+.nbs{display:flex;flex-direction:column;gap:12px}
+.nbg{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.nbg>b{width:100%;font-size:11px;letter-spacing:.16em;color:var(--c)}
+.nbi{display:flex;flex-direction:column;align-items:center;gap:4px;width:64px}
+.nbi .nb{width:56px}
+.nbi span{font:600 15px/1.1 'Caveat',cursive;color:var(--ink);text-align:center;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nbi .nb.add{font-size:24px;border-width:1.5px}
+.an{display:flex;gap:10px;align-items:center;width:100%;text-align:left;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.65);margin-bottom:6px}
+.an>i{width:6px;align-self:stretch;border-radius:3px;background:var(--c);flex:none}
+.an .sn{flex:1;font:600 20px/1.2 'Caveat',cursive;color:var(--ink)}
+.an .tg{font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--c);display:block}
 @media(max-width:860px){
  .wrap{padding:env(safe-area-inset-top) 12px calc(120px + env(safe-area-inset-bottom))}
  .book{flex-direction:column;padding-top:64px}
@@ -365,12 +376,12 @@ function vCover(){return`<div style="position:relative;width:100%;max-width:760p
 function vCal(){
  const y=UI.y,m=UI.m,first=new Date(y,m,1),start=addD(first,-wdi(first));let cells='';
  for(let i=0;i<42;i++){const d=addD(start,i),ds=iso(d),inm=d.getMonth()===m;if(!inm&&i>=35&&d.getDate()<8&&i%7===0)break;
-  const sps=inm?[...new Set(dayEntries(ds).map(t=>t.sp))]:[];
+  const sps=inm?[...new Set([...dayEntries(ds).map(t=>t.sp),...notesOnDay(ds).map(x=>x.nb.sp),...(((C(mk(ds)).days||{})[ds]||{}).journal?['lib']:[])].filter(s=>UI.f==='all'||s===UI.f))]:[];
   cells+=`<button class="cell ${inm?'':'out'} ${ds===TODAY?'td':''} ${ds===UI.day?'sel':''}" data-a="pick" data-d="${ds}" aria-label="${d.getDate()} de ${MESES[d.getMonth()]}${sps.length?', con anotaciones':''}"><span class="n">${d.getDate()}</span><span class="dots">${sps.map(s=>`<i style="--c:${SP[s][1]}"></i>`).join('')}</span></button>`}
  const L=`${head('CALENDARIO · '+y,cap1(MESES[m]),'#C93D72',navB('#C93D72')+'<button class="tl" data-a="tab" data-v="cover" style="margin-left:6px">Portada</button>')}
  ${pills([['all','Todo','#C93D72'],['lib','Personal',SP.lib[1]],['deb','Deberes',SP.deb[1]],['tra','Trabajo',SP.tra[1]]].map(([v,l,d])=>[v,l,d]),UI.f,'filt','#C93D72')}
  <div class="cal">${['L','M','M','J','V','S','D'].map(d=>`<div class="wd">${d}</div>`).join('')}${cells}</div>
- <div class="hint">${I.stk.replace('currentColor','#C93D72')}Toca un día para abrir lo que tienes anotado.</div>`;
+ ${sec('MIS CUADERNOS','#C93D72',nbStrip(['lib','deb','tra']))}`;
  const d=parse(UI.day),E=dayEntries(UI.day);
  const it=t=>`<div class="it" style="--c:${SP[t.sp][1]}"><span class="hr">${esc(t.time||'')}</span><input type="checkbox" class="chk" data-a="echk" data-src="${t.src}" data-i="${t.id}" ${t.done?'checked':''} aria-label="Hecho"><input type="text" class="t ${t.done?'done':''}" value="${esc(t.t)}" data-et="${t.src}|${t.id}" aria-label="Actividad"><span class="tag" style="--c:${SP[t.sp][1]}">${SP[t.sp][0].toUpperCase()}</span>${t.time&&downloads?`<button class="bell" data-a="ics" data-src="${t.src}" data-i="${t.id}" aria-label="Recordatorio en mi calendario">${I.bell}</button>`:''}<button class="x" data-a="edel" data-src="${t.src}" data-i="${t.id}" aria-label="Borrar">${I.x}</button></div>`;
  const timed=E.filter(t=>t.time),un=E.filter(t=>!t.time);
@@ -379,7 +390,10 @@ function vCal(){
  ${pills(Object.entries(SP).map(([k,[l,c]])=>[k,l,c]),UI.sp,'sp','#C93D72')}<button class="btn">Agregar</button></form>
  ${sec('HORARIO','#C93D72',timed.length?timed.map(it).join(''):'<p class="empty">Nada con hora todavía.</p>')}
  ${sec('SIN HORA','#C93D72',un.length?un.map(it).join(''):'<p class="empty">Nada pendiente.</p>')}
- ${sec('NOTAS DEL DÍA','#C93D72',lined(mk(UI.day),'days.'+UI.day+'.notes','Notas del día',3))}</div>`;
+ ${sec('NOTAS DEL DÍA','#C93D72',lined(mk(UI.day),'days.'+UI.day+'.notes','Notas del día',3))}
+ ${(()=>{const J=((C(mk(UI.day)).days||{})[UI.day]||{}).journal,N=notesOnDay(UI.day).filter(x=>UI.f==='all'||x.nb.sp===UI.f);if(!J&&!N.length)return'';
+  return sec('ANOTADO ESTE DÍA','#C93D72',(J&&(UI.f==='all'||UI.f==='lib')?`<button class="an" data-a="opendiario" data-d="${UI.day}" style="--c:${SP.lib[1]}"><i></i><span class="sn"><span class="tg">DIARIO</span>${esc(J.slice(0,90))}${J.length>90?'…':''}</span></button>`:'')+
+  N.map(({nb,n})=>`<button class="an" data-a="gonb" data-sp="${nb.sp}" data-i="${nb.id}" style="--c:${SP[nb.sp][1]}"><i></i><span class="sn"><span class="tg">${esc((nb.name||'CUADERNO').toUpperCase())} · ${pad(new Date(n.ts).getHours())}:${pad(new Date(n.ts).getMinutes())}</span>${esc(noteSnip(n).slice(0,90))}</span></button>`).join(''))})()}</div>`;
  return[L,R]}
 /* ---------- libreta ---------- */
 const LSUB=[['diario','Diario'],['aprender','Aprender'],['lect','Lecturas'],['gusta','Me gusta'],['cuad','Cuadernos']];
@@ -391,6 +405,7 @@ function vLib(){const s=UI.sub.lib,c=SP.lib[1],sub=pills(LSUB,s,'sub','#E4709A')
   return[`${head('PERSONAL · DIARIO',cap1(DOWL[wdi(d)])+' '+d.getDate(),c,navB(c))}${sub}
   <textarea class="lined hand" style="flex:1;min-height:440px" data-k="${k}" data-p="${p}.journal" aria-label="Mi diario" placeholder="querido diario…">${val(k,p+'.journal')}</textarea>`,
   `${head(MESES[d.getMonth()].toUpperCase()+' '+d.getFullYear(),'Cómo estoy',c)}
+  ${(()=>{const E=(()=>{const f=UI.f;UI.f='all';const r=dayEntries(UI.ldate);UI.f=f;return r})();return sec('EN TU CALENDARIO ESTE DÍA','#C93D72',E.length?E.map(t=>`<button class="an" data-a="pick" data-d="${UI.ldate}" style="--c:${SP[t.sp][1]}"><i></i><span class="sn"><span class="tg">${SP[t.sp][0].toUpperCase()}${t.time?' · '+esc(t.time):''}</span>${esc(t.t)}</span></button>`).join(''):`<button class="an" data-a="pick" data-d="${UI.ldate}" style="--c:#C93D72"><i></i><span class="sn" style="font:14px 'DM Sans',sans-serif;color:var(--mu)">Nada en el calendario. Toca para anotar algo.</span></button>`)})()}
   ${sec('CÓMO ME SIENTO',c,`<div class="moods">${M.map(([n,mc],i)=>`<button class="mood ${D.mood===i?'on':''}" data-a="mood" data-n="${i}" aria-pressed="${D.mood===i}"><i style="--c:${mc}"></i>${n}</button>`).join('')}</div>`)}
   ${sec('HOY AGRADEZCO',c,lined(k,p+'.grat','Hoy agradezco',3,'hand'))}
   ${sec('PARA MAÑANA',c,lined(k,p+'.manana','Para mañana',3))}
@@ -492,6 +507,12 @@ function vCuad(sp,sub){PGR='';const c=SP[sp][1],L=list('cuadernos').filter(n=>n.
   <div class="notes">${N.map(card).join('')||'<p class="empty">Todavía no hay notas. Escribe la primera arriba.</p>'}</div>`}
  else right=`${head('CUADERNOS','Ábrelo y anota',c)}<p class="empty">${L.length?'Toca un cuaderno para abrirlo.':'Crea tu primer cuaderno con el botón +.'}</p>`;
  return[left,right]}
+
+const notesOnDay=ds=>{const out=[];for(const nb of list('cuadernos'))for(const n of (nb.notes||[]))if(n.ts&&iso(new Date(n.ts))===ds)out.push({nb,n});return out.sort((a,b)=>a.n.ts-b.n.ts)};
+const noteSnip=n=>n.type==='c'?(n.title||'Lista')+' · '+(n.items||[]).length+' cosas':n.type==='l'?(n.title||n.url||'Enlace'):n.type==='a'?(n.title||'Nota de voz'):(n.t||'');
+function nbStrip(sps){const g=sps.map(sp=>{const L=list('cuadernos').filter(n=>n.sp===sp);const c=SP[sp][1];
+ return`<div class="nbg" style="--c:${c}"><b>${SP[sp][0].toUpperCase()}</b>${L.map(n=>`<div class="nbi">${nbHTML(n.cover,null,`data-a="gonb" data-sp="${sp}" data-i="${n.id}" aria-label="Abrir ${esc(n.name||'cuaderno')}"`)}<span>${esc(n.name||'Sin nombre')}</span></div>`).join('')}<div class="nbi"><button class="nb add" data-a="gonbnew" data-sp="${sp}" aria-label="Nuevo cuaderno de ${SP[sp][0]}">+</button><span>nuevo</span></div></div>`}).join('');
+ return`<div class="nbs">${g}</div>`}
 /* ---------- render ---------- */
 function needs(){const k=['cfg','deberes','trabajo','cuadernos',pageKey()];const t=UI.tab;
  if(t==='cal'){const f=new Date(UI.y,UI.m,1);k.push(mk(iso(f)),mk(UI.day))}
@@ -502,7 +523,7 @@ async function render(){const my=++rseq;await Promise.all(needs().map(load));if(
  const root=$('#root');
  if(UI.tab==='cover'){root.innerHTML=vCover();$('#tools').innerHTML='';return}
  if(!['cal','lib','deb','tra'].includes(UI.tab))UI.tab='cal';
- PGR='';const V={cal:vCal,lib:vLib,deb:vDeb,tra:vTra}[UI.tab],[L,R]=V();
+ PGR='';const V={cal:vCal,lib:vLib,deb:vDeb,tra:vTra}[UI.tab];let[L,R]=V();if(['lib','deb','tra'].includes(UI.tab)&&UI.sub[UI.tab]!=='cuad')L+=sec('MIS CUADERNOS',SP[UI.tab][1],nbStrip([UI.tab]));
  root.innerHTML=`<div class="book" id="book"><section class="pg l">${L}</section><section class="pg r" style="${PGR}">${R}</section><div class="rings" aria-hidden="true">${'<i></i>'.repeat(7)}</div>
  <nav class="tabs" aria-label="Secciones"><button class="home ${UI.tab==='cal'?'on':''}" data-a="tab" data-v="cal" aria-label="Calendario" title="Calendario">${I.home}</button>${TABS.map(([k,l,c])=>`<button data-a="tab" data-v="${k}" class="${UI.tab===k?'on':''}" style="--c:${c}"><span>${l.toUpperCase()}</span></button>`).join('')}</nav>
  <div id="stk" aria-hidden="true"></div><canvas id="ink" aria-label="Capa para escribir a mano"></canvas></div>`;
@@ -576,6 +597,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  if(a==='nbbgdone'){UI.sel.nbBg=false;render();return}
  if(a==='nbbg'){const n=list('cuadernos').find(x=>x.id===UI.sel.nb);if(n){n.bg=v;save('cuadernos');render()}return}
  if(a==='nci'){const n=list('cuadernos').find(x=>x.id===UI.sel.nb),o=n&&n.notes.find(x=>x.id===id);if(o){o.items[+b.dataset.n].done=b.checked;save('cuadernos');render()}return}
+ if(a==='gonb'||a==='gonbnew'){const sp=b.dataset.sp;UI.tab=sp;UI.sub[sp]='cuad';UI.sel.nbEdit=false;UI.sel.nbBg=false;if(a==='gonb'){UI.sel.nb=id;UI.sel.nbNew=null}else{UI.sel.nbNew=sp;UI.sel.nbCover='zebra'}MODE=null;SEL=null;render().then(()=>{scrollTo(0,0);if(a==='gonbnew'){const x=$('#nbname');x&&x.focus()}});return}
+ if(a==='opendiario'){UI.tab='lib';UI.sub.lib='diario';UI.ldate=b.dataset.d;MODE=null;SEL=null;render().then(()=>scrollTo(0,0));return}
  if(a==='nbnew'){UI.sel.nbNew=UI.tab;UI.sel.nbCover='zebra';UI.sel.nbEdit=false;render().then(()=>{const x=$('#nbname');x&&x.focus()});return}
  if(a==='nbcancel'){UI.sel.nbNew=null;render();return}
  if(a==='nbcov'){if(UI.sel.nbNew){UI.sel.nbCover=v;const nm=$('#nbname')?.value||'';render().then(()=>{const x=$('#nbname');if(x)x.value=nm})}else{const n=list('cuadernos').find(x=>x.id===UI.sel.nb);if(n){n.cover=v;save('cuadernos');render()}}return}
