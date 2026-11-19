@@ -403,9 +403,7 @@ function vCal(){
  const R=`<div id="dayp">${head(cap1(DOWL[wdi(d)]),d.getDate()+' de '+MESES[d.getMonth()],'#C93D72')}
  <form class="addf" data-f="add"><input type="time" name="time" aria-label="Hora (opcional)"><input type="text" name="t" placeholder="¿qué tienes este día?" aria-label="Actividad">
  ${pills(Object.entries(SP).map(([k,[l,c]])=>[k,l,c]),UI.sp,'sp','#C93D72')}<button class="btn">Agregar</button></form>
- ${sec('HORARIO','#C93D72',timed.length?timed.map(it).join(''):'<p class="empty">Nada con hora todavía.</p>')}
- ${sec('SIN HORA','#C93D72',un.length?un.map(it).join(''):'<p class="empty">Nada pendiente.</p>')}
- ${sec('NOTAS DEL DÍA','#C93D72',lined(mk(UI.day),'days.'+UI.day+'.notes','Notas del día',3))}
+ ${sec('HORARIO','#C93D72',E.length?[...timed,...un].map(it).join(''):'<p class="empty">Nada anotado todavía.</p>')}
  ${(()=>{const A=(((C(mk(UI.day)).days||{})[UI.day]||{}).audios)||[];const can=!!(navigator.mediaDevices&&window.MediaRecorder);
   return sec('NOTAS DE VOZ','#C93D72',A.map(x=>`<div class="note" style="display:flex;align-items:center;gap:8px"><audio controls preload="none" style="flex:1;min-width:0;height:40px" src="${esc(fileUrl(x.a,()=>{if(!busy())render()}))}"></audio><button class="tl" data-a="daydela" data-i="${x.id}" aria-label="Borrar audio">✕</button></div>`).join('')+(can?`<button class="btn" data-a="dayrec" style="margin-top:8px;${REC?'background:#3A2A2E':''}">${I.mic} ${REC?'Detener':'Grabar nota de voz'}</button>`:(A.length?'':'<p class="empty">Las notas de voz funcionan en tu app.</p>')))})()}
  ${(()=>{const J=((C(mk(UI.day)).days||{})[UI.day]||{}).journal,N=notesOnDay(UI.day).filter(x=>UI.f==='all'||x.nb.sp===UI.f);if(!J&&!N.length)return'';
