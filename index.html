@@ -139,7 +139,7 @@ body.pen #ink{pointer-events:auto;touch-action:none;cursor:crosshair}
 #stk{position:absolute;inset:0;pointer-events:none;z-index:5}
 #stk.hidestk .s:not(.isph){display:none}
 .s{position:absolute;user-select:none;-webkit-user-select:none;line-height:0}
-body.stk .s{pointer-events:auto;cursor:grab;touch-action:none}
+body:not(.pen) .s{pointer-events:auto;cursor:grab;touch-action:none}
 .s.sel{outline:2px dashed var(--oro);outline-offset:4px;border-radius:8px}
 .pill{line-height:1;font:700 22px 'Caveat',cursive;padding:6px 14px;border-radius:999px;color:var(--dk);background:var(--c);white-space:nowrap;display:inline-block}
 .ph{margin:0;width:180px;line-height:0;position:relative}
@@ -605,7 +605,7 @@ function bindLayers(){bk=$('#book');cv=$('#ink');cx=cv.getContext('2d');
  cv.addEventListener('pointermove',e=>{if(!cur)return;if(cur.er){if(erase(pt(e)))erased=true;return}const ev=e.getCoalescedEvents?e.getCoalescedEvents():[e];for(const x of ev)cur.p.push(...pt(x));drawInk()});
  cv.addEventListener('pointerup',endStroke);cv.addEventListener('pointercancel',endStroke);
  const L=$('#stk');
- L.addEventListener('pointerdown',e=>{if(MODE!=='stk')return;const el=e.target.closest('.s');if(!el)return;e.preventDefault();SEL=el.dataset.st;const s=PG().s.find(x=>x.id===SEL),p=pt(e);drag={s,dx:s.x-p[0],dy:s.y-p[1],el,moved:false};el.setPointerCapture(e.pointerId);document.querySelectorAll('.s.sel').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');tools()});
+ L.addEventListener('pointerdown',e=>{if(MODE==='pen')return;const el=e.target.closest('.s');if(!el)return;if(MODE!=='stk'){MODE='stk';tools()}e.preventDefault();SEL=el.dataset.st;const s=PG().s.find(x=>x.id===SEL),p=pt(e);drag={s,dx:s.x-p[0],dy:s.y-p[1],el,moved:false};el.setPointerCapture(e.pointerId);document.querySelectorAll('.s.sel').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');tools()});
  L.addEventListener('pointermove',e=>{if(!drag)return;const p=pt(e),W=BW();drag.s.x=p[0]+drag.dx;drag.s.y=p[1]+drag.dy;drag.moved=true;drag.el.style.left=drag.s.x*W/10000+'px';drag.el.style.top=drag.s.y*W/10000+'px'});
  L.addEventListener('pointerup',()=>{if(drag&&drag.moved)save(pageKey());drag=null});
  ro.disconnect();ro.observe(bk)}
