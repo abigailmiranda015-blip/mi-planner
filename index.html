@@ -261,7 +261,9 @@ body:not(.pen) .s{pointer-events:auto;cursor:grab;touch-action:none}
 .shtop{display:flex;align-items:center;gap:12px;margin:0 0 14px;padding-right:70px}
 .shtop .bk{display:flex;align-items:center;gap:4px;min-height:44px;padding:0 16px 0 10px;border-radius:999px;background:rgba(255,255,255,.75);color:var(--ink);font-weight:600;font-size:14px;flex:none}
 .shtop .nbm{width:44px;flex:none}
-.pgnav{display:flex;align-items:center;gap:6px;flex:none}.pgnav button{min-width:44px;height:44px;border-radius:22px;background:rgba(255,255,255,.75);font-size:22px;color:var(--ink)}.pgnav button:disabled{opacity:.35}.pgnav span{font:700 13px 'DM Sans',sans-serif;color:#fff;background:#C93D72;border-radius:12px;padding:4px 10px}.pgnav .pgadd{font-size:14px;font-weight:700;padding:0 16px;background:#C93D72;color:#fff}
+.pgnav{display:flex;align-items:center;gap:6px;flex:none}.pgnav button{min-width:44px;height:44px;border-radius:22px;background:rgba(255,255,255,.75);font-size:22px;color:var(--ink)}.pgnav button:disabled{opacity:.35}.pgnav span{font:700 13px 'DM Sans',sans-serif;color:#fff;background:#C93D72;border-radius:12px;padding:4px 10px}.pgnav .svbtn span{background:none;color:inherit;padding:0;font:inherit}
+.pgnav .svbtn{font-size:14px;font-weight:700;padding:0 16px;background:#E6F2EF;color:#2F6F63}.pgnav .svbtn.busy{background:#FBE4EB;color:#C93D72}
+.pgnav .pgadd{font-size:14px;font-weight:700;padding:0 16px;background:#C93D72;color:#fff}
 @media(max-width:860px){.shtop{flex-wrap:wrap}.pgnav{width:100%;justify-content:flex-end}}
 .shtop .ttl{flex:1;min-width:0;font:italic 400 38px/1.1 'Playfair Display',serif;color:var(--c);padding:0}
 .nsheet{--lh:40px;position:relative;width:100%;min-height:calc(100vh - 170px);border-radius:6px 18px 18px 6px;box-shadow:0 10px 30px rgba(40,60,60,.25),inset 14px 0 0 rgba(201,61,114,.08);background-color:#F8F3EF;background-image:linear-gradient(90deg,transparent 88px,rgba(201,61,114,.38) 88px 90px,transparent 90px),repeating-linear-gradient(transparent 0 calc(var(--lh) - 1px),#DCCFD1 calc(var(--lh) - 1px) var(--lh));background-position:0 0,0 66px;display:flex;flex-direction:column;transform-origin:top center}
@@ -366,10 +368,11 @@ function load(k){if(S.cache[k])return Promise.resolve(S.cache[k]);if(S.loading[k
  S.loading[k]=(async()=>{let v=lsGet(k)||{};if(S.online){try{const r0=await rget(k);if(r0){const r=JSON.parse(JSON.stringify(r0));S.base[k]=1;if((r._t||0)>=(v._t||0))v=r;else{v=mrg(r,v);setTimeout(()=>flush(k),50)}}else{S.base[k]=1;if(v._t)setTimeout(()=>flush(k),50)}}catch(e){}}
   S.cache[k]=v;lsSet(k,v);delete S.loading[k];return v})();return S.loading[k]}
 const C=k=>S.cache[k]||(S.cache[k]={});
-function save(k){const v=C(k);v._t=Date.now();lsSet(k,v);clearTimeout(S.timers[k]);S.timers[k]=setTimeout(()=>flush(k),700)}
+const SVP=new Set();function svSet(){const el=document.getElementById('svst');if(!el)return;const busy=SVP.size>0;el.textContent=busy?(S.fails?'Reintentando…':'Guardando…'):'✓ Guardado';el.parentNode.classList.toggle('busy',busy)}
+function save(k){const v=C(k);v._t=Date.now();lsSet(k,v);clearTimeout(S.timers[k]);if(S.online)SVP.add(k);svSet();S.timers[k]=setTimeout(()=>flush(k),700)}
 async function flush(k){if(!S.online)return;if(S.writing[k]){S.dirty[k]=true;return}S.writing[k]=true;
  if(!S.base[k]){try{const r=await rget(k);if(r)Object.assign(C(k),mrg(r,C(k)));S.base[k]=1;lsSet(k,C(k))}catch(e){S.writing[k]=false;setTimeout(()=>flush(k),2000);return}}
- try{await rset(k,JSON.parse(JSON.stringify(C(k))))}catch(e){S.fails=(S.fails||0)+1;if(S.fails===2)toast('No se pudo guardar en la nube. Revisa tu internet; lo intento de nuevo.');setTimeout(()=>flush(k),3000+Math.random()*2000)}
+ try{await rset(k,JSON.parse(JSON.stringify(C(k))));if(!S.dirty[k])SVP.delete(k);S.fails=0;svSet()}catch(e){svSet();S.fails=(S.fails||0)+1;if(S.fails===2)toast('No se pudo guardar en la nube. Revisa tu internet; lo intento de nuevo.');setTimeout(()=>flush(k),3000+Math.random()*2000)}
  S.writing[k]=false;if(S.dirty[k]){S.dirty[k]=false;flush(k)}}
 
 /* traer cambios hechos desde otro lado (p. ej. cuando Claude anota algo) */
@@ -559,7 +562,7 @@ function vCuad(sp,sub){PGR='';SHEET=false;const c=SP[sp][1],L=list('cuadernos').
   const rowsOf=t=>Math.max(1,(t||'').split('\n').reduce((a,l)=>a+Math.max(1,Math.ceil(l.length/48)),0));
   const line=n=>{if(n.type&&n.type!=='t')return card(n).replace('class="note"','class="shcard"');return`<div class="ln"><textarea class="hw" rows="${rowsOf(n.t)}" data-nt="${n.id}" aria-label="Nota">${esc(n.t)}</textarea><button class="x" data-a="ntdel" data-i="${n.id}" aria-label="Borrar">${I.x}</button></div>`};
   const can=navigator.mediaDevices&&window.MediaRecorder;
-  right=`<div class="shtop" style="--c:${c}"><button class="bk" data-a="nbclose" aria-label="Volver a mis cuadernos">${I.x.replace('M6 6l12 12M18 6L6 18','M15 5l-7 7 7 7')}Cuadernos</button><div class="nbm">${nbHTML(cur.cover,null,'data-a="nbedit" aria-label="Cambiar portada"')}</div><input type="text" class="ttl" value="${esc(cur.name)}" data-nbf="${cur.id}" aria-label="Nombre del cuaderno"><div class="pgnav"><button data-a="pgprev" ${pi?'':'disabled'} aria-label="Hoja anterior">‹</button><span>${pi+1} / ${PGS.length}</span><button data-a="pgnext" ${pi<PGS.length-1?'':'disabled'} aria-label="Hoja siguiente">›</button><button class="pgadd" data-a="pgadd">+ Hoja nueva</button></div></div>
+  right=`<div class="shtop" style="--c:${c}"><button class="bk" data-a="nbclose" aria-label="Volver a mis cuadernos">${I.x.replace('M6 6l12 12M18 6L6 18','M15 5l-7 7 7 7')}Cuadernos</button><div class="nbm">${nbHTML(cur.cover,null,'data-a="nbedit" aria-label="Cambiar portada"')}</div><input type="text" class="ttl" value="${esc(cur.name)}" data-nbf="${cur.id}" aria-label="Nombre del cuaderno"><div class="pgnav"><button data-a="pgprev" ${pi?'':'disabled'} aria-label="Hoja anterior">‹</button><span>${pi+1} / ${PGS.length}</span><button data-a="pgnext" ${pi<PGS.length-1?'':'disabled'} aria-label="Hoja siguiente">›</button><button class="pgadd" data-a="pgadd">+ Hoja nueva</button><button class="svbtn" data-a="savenow" aria-live="polite"><span id="svst">✓ Guardado</span></button></div></div>
   <div class="nsheet ${UI.sel.anim?'anim':''}" style="${cbg}"><span class="tape" aria-hidden="true"></span><span class="date">${td.getDate()} ${MESES[td.getMonth()].slice(0,3)}</span>
   <div class="body">${[...N].filter(n=>(n.pg||'p1')===pid).reverse().map(line).join('')}
   <form class="write" data-f="note"><textarea name="t" class="hw" placeholder="escribe aquí…" aria-label="Escribir en la hoja"></textarea><button class="btn savew">Guardar</button></form></div>
@@ -570,7 +573,7 @@ function vCuad(sp,sub){PGR='';SHEET=false;const c=SP[sp][1],L=list('cuadernos').
 function nbPages(n){return n&&n.pages&&n.pages.length?n.pages:[{id:'p1',ts:(n&&n.ts)||Date.now()}]}
 function nbPi(n){const P=nbPages(n),m=UI.sel.pgi||{};let i=m[n.id];if(i==null||i>=P.length)i=P.length-1;return Math.max(0,i)}
 function curPg(){const n=list('cuadernos').find(x=>x.id===UI.sel.nb);return n?nbPages(n)[nbPi(n)].id:'p1'}
-function vCua(){const all=list('cuadernos'),cur=all.find(n=>n.id===UI.sel.nb),sp=UI.sel.nbNew||(cur&&cur.sp);
+function vCua(){setTimeout(svSet,0);const all=list('cuadernos'),cur=all.find(n=>n.id===UI.sel.nb),sp=UI.sel.nbNew||(cur&&cur.sp);
  const shelves=`${head('CUADERNOS','Mis cuadernos','#C93D72')}${['lib','deb','tra'].map(k=>{const L=all.filter(n=>n.sp===k),c=SP[k][1];
   return`<div class="cshelf" style="--c:${c}"><div class="cst"><i></i>${SP[k][0].toUpperCase()}</div><div class="shelf">${L.map(n=>nbHTML(n.cover,n.name,`data-a="nbopen" data-i="${n.id}" aria-label="Abrir ${esc(n.name||'cuaderno')}"`,cur&&cur.id===n.id?'on':'')).join('')}<button class="nb add" data-a="nbnew" data-sp="${k}" aria-label="Nuevo cuaderno de ${SP[k][0]}">+</button></div></div>`}).join('')}`;
  if(sp){const[l,r]=vCuad(sp,'');return[SHEET?l:shelves,r]}
@@ -683,6 +686,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  if(a==='nbcov'){if(UI.sel.nbNew){UI.sel.nbCover=v;const nm=$('#nbname')?.value||'';render().then(()=>{const x=$('#nbname');if(x)x.value=nm})}else{const n=list('cuadernos').find(x=>x.id===UI.sel.nb);if(n){n.cover=v;save('cuadernos');render()}}return}
  if(a==='nbcreate'){const nm=($('#nbname')?.value||'').trim()||'Notas rápidas';const n={id:uid(),sp:UI.sel.nbNew||UI.tab,name:nm,cover:UI.sel.nbCover||'zebra',notes:[]};list('cuadernos').push(n);save('cuadernos');UI.sel.nb=n.id;UI.sel.nbNew=null;SEL=null;render();return}
  if(a==='nbopen'){UI.sel.nbBg=false;UI.sel.nb=id;UI.sel.nbNew=null;UI.sel.nbEdit=false;UI.sel.anim=true;SEL=null;MODE=null;render().then(()=>scrollTo(0,0));return}
+ if(a==='savenow'){const w=document.querySelector('.write textarea');if(w&&w.value.trim()){w.form.requestSubmit();}
+  for(const k of Object.keys(S.timers)){clearTimeout(S.timers[k]);if(SVP.has(k))flush(k)}svSet();toast(SVP.size||(w&&w.value.trim())?'Guardando tu hoja…':'Todo está guardado en la hoja ✓');setTimeout(svSet,1500);return}
  if(a==='pgadd'||a==='pgprev'||a==='pgnext'){const n=list('cuadernos').find(x=>x.id===UI.sel.nb);if(!n)return;UI.sel.pgi=UI.sel.pgi||{};
   if(a==='pgadd'){if(!n.pages||!n.pages.length)n.pages=[{id:'p1',ts:n.ts||Date.now()}];n.pages.push({id:uid(),ts:Date.now()});UI.sel.pgi[n.id]=n.pages.length-1;save('cuadernos')}
   else UI.sel.pgi[n.id]=nbPi(n)+(a==='pgnext'?1:-1);
