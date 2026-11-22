@@ -607,9 +607,10 @@ function bindLayers(){bk=$('#book');cv=$('#ink');cx=cv.getContext('2d');
  cv.addEventListener('pointermove',e=>{if(!cur)return;if(cur.er){if(erase(pt(e)))erased=true;return}const ev=e.getCoalescedEvents?e.getCoalescedEvents():[e];for(const x of ev)cur.p.push(...pt(x));drawInk()});
  cv.addEventListener('pointerup',endStroke);cv.addEventListener('pointercancel',endStroke);
  const L=$('#stk');
- L.addEventListener('pointerdown',e=>{if(MODE==='pen')return;const el=e.target.closest('.s');if(!el)return;if(MODE!=='stk'){MODE='stk';tools()}e.preventDefault();const p=pt(e);PTR[e.pointerId]=p;
+ L.addEventListener('pointerdown',e=>{if(MODE==='pen')return;const el=e.target.closest('.s');if(!el)return;e.preventDefault();const p=pt(e);PTR[e.pointerId]=p;
   if(drag&&drag.el===el&&Object.keys(PTR).length===2){const[a,b2]=Object.values(PTR);drag.pinch={d0:Math.hypot(a[0]-b2[0],a[1]-b2[1])||1,z0:drag.s.z||1};el.setPointerCapture(e.pointerId);return}
-  SEL=el.dataset.st;const s=PG().s.find(x=>x.id===SEL);drag={s,dx:s.x-p[0],dy:s.y-p[1],el,moved:false};if(e.target.classList.contains('rz'))drag.rz={d0:Math.hypot(p[0]-s.x,p[1]-s.y)||1,z0:s.z||1};el.setPointerCapture(e.pointerId);document.querySelectorAll('.s.sel').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');tools()});
+  SEL=el.dataset.st;const s=PG().s.find(x=>x.id===SEL);drag={s,dx:s.x-p[0],dy:s.y-p[1],el,moved:false};if(e.target.classList.contains('rz'))drag.rz={d0:Math.hypot(p[0]-s.x,p[1]-s.y)||1,z0:s.z||1};el.setPointerCapture(e.pointerId);if(!el.classList.contains('sel')){SEL=el.dataset.st;drawStk();drag.el=$(`#stk .s[data-st="${SEL}"]`)||el;drag.el.setPointerCapture(e.pointerId)}if(MODE==='stk')tools()});
+ document.addEventListener('pointerdown',e=>{if(!SEL||MODE==='pen'||e.target.closest('.s,.panel,#tools,.shbar'))return;SEL=null;drawStk();if(MODE==='stk')tools()},true);
  L.addEventListener('pointermove',e=>{if(!drag)return;const p=pt(e),W=BW();if(PTR[e.pointerId])PTR[e.pointerId]=p;
   const setZ=z=>{drag.s.z=Math.max(.2,Math.min(6,Math.round(z*100)/100));drag.moved=true;drag.el.style.transform=`translate(-50%,-50%) rotate(${drag.s.r||0}deg) scale(${drag.s.z})`;drag.el.style.setProperty('--iz',1/drag.s.z)};
   if(drag.pinch){const V=Object.values(PTR);if(V.length>=2)setZ(drag.pinch.z0*Math.hypot(V[0][0]-V[1][0],V[0][1]-V[1][1])/drag.pinch.d0);return}
