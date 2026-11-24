@@ -241,7 +241,7 @@ function render(){if(S.data.cur!==S.cur){S.data.cur=S.cur;save()}const p=page(),
   <button class="ib" data-a="prev" aria-label="Hoja anterior" ${i<=0?'disabled style="opacity:.4"':''}>${I.l}</button><button class="ib" data-a="next" aria-label="Hoja siguiente" ${i>=L.length-1?'disabled style="opacity:.4"':''}>${I.r}</button><button class="ib add" data-a="new" aria-label="Hoja nueva">+</button>${navigator.mediaDevices&&window.MediaRecorder?`<button class="ib ${REC?'on':''}" data-a="rec" aria-label="Audio">${I.mic}</button>`:''}<a class="ib" href="${BASE}" aria-label="Abrir cuaderno">${I.pages}<span class="lb">Ver cuaderno</span></a></div>
  <div class="wrap" id="wrap"><div class="sheet bg-${p.bg||'rayas'} ${p.f==='normal'?'f-normal':''}" id="sheet"><div class="tape"></div><div class="date">${fdate(p.c||p.ts)}</div>
   <textarea id="tx" placeholder="anota algo rápido…" spellcheck="true">${esc(p.text)}</textarea><div id="objs"></div><canvas id="cv"></canvas></div></div>
- <div class="tools">${COLORS.map(c=>`<button class="dot ${S.tool!=='erase'&&S.color===c?'on':''}" style="background:${c}" data-a="col" data-v="${c}" aria-label="Color"></button>`).join('')}<span class="sep"></span><button class="tb ${S.tool==='erase'?'on':''}" data-a="tool" data-v="erase" aria-label="Goma">${I.erase}</button><button class="tb" data-a="undo" aria-label="Deshacer">${I.undo}</button></div>`;}
+ <div class="tools">${COLORS.map(c=>`<button class="dot ${S.tool!=='erase'&&S.color===c?'on':''}" style="background:${c}" data-a="col" data-v="${c}" aria-label="Color"></button>`).join('')}<span class="sep"></span><button class="tb ${S.tool==='erase'?'on':''}" data-a="tool" data-v="erase" aria-label="Goma" style="width:auto;padding:0 12px;border-radius:19px;gap:6px">${I.erase}<span style="font-size:14px;font-weight:500">Goma</span></button><button class="tb" data-a="undo" aria-label="Deshacer">${I.undo}</button></div>`;}
  else $('#app').innerHTML=`<div class="bar">
   <div class="ttl">${I.star.replace('fill="#fff"','fill="#C93D72" width="22" height="22"')}Mi Cuaderno <small>${i+1}/${L.length}</small></div>
   <div class="seg"><button data-a="mode" data-v="kb" class="${S.mode==='kb'?'on':''}" aria-label="Teclado">${I.kb}<span class="lb">Teclado</span></button><button data-a="mode" data-v="pen" class="${S.mode==='pen'?'on':''}" aria-label="Lápiz">${I.pen}<span class="lb">Lápiz</span></button></div>
@@ -254,7 +254,7 @@ function render(){if(S.data.cur!==S.cur){S.data.cur=S.cur;save()}const p=page(),
  <div class="wrap" id="wrap"><div class="sheet bg-${p.bg||'rayas'} ${p.f==='normal'?'f-normal':''}" id="sheet"><div class="tape"></div><div class="date">${fdate(p.c||p.ts)}</div>
   <textarea id="tx" placeholder="escribe aquí…" spellcheck="true">${esc(p.text)}</textarea><div id="objs"></div><canvas id="cv"></canvas></div></div><input type="file" id="fi" accept="image/*" hidden>
  <div class="tools">${COLORS.map(c=>`<button class="dot ${S.tool!=='erase'&&S.color===c?'on':''}" style="background:${c}" data-a="col" data-v="${c}" aria-label="Color"></button>`).join('')}
-  <span class="sep"></span><button class="tb ${S.tool==='hl'?'on':''}" data-a="tool" data-v="hl" aria-label="Destacador">${I.hl}</button><button class="tb ${S.tool==='erase'?'on':''}" data-a="tool" data-v="erase" aria-label="Goma">${I.erase}</button><button class="tb" data-a="undo" aria-label="Deshacer">${I.undo}</button></div>`;
+  <span class="sep"></span><button class="tb ${S.tool==='hl'?'on':''}" data-a="tool" data-v="hl" aria-label="Destacador">${I.hl}</button><button class="tb ${S.tool==='erase'?'on':''}" data-a="tool" data-v="erase" aria-label="Goma" style="width:auto;padding:0 12px;border-radius:19px;gap:6px">${I.erase}<span style="font-size:14px;font-weight:500">Goma</span></button><button class="tb" data-a="undo" aria-label="Deshacer">${I.undo}</button></div>`;
  if(QUICK)document.body.classList.add('quick');const tx=$('#tx');tx.oninput=()=>{const p=page();p.text=tx.value;p.ts=Date.now();fit();save()};
  renderObjs();fit();if(S.mode==='kb'&&!('ontouchstart' in window))tx.focus();
 }
@@ -275,7 +275,11 @@ document.addEventListener('pointermove',e=>{if(!cur||e.target.id!=='cv')return;c
  const evs=e.getCoalescedEvents?e.getCoalescedEvents():[e];for(const ev of evs){const pt=[Math.round((ev.clientX-r.left)*sc),Math.round((ev.clientY-r.top)*sc)];if(cur.erase)eraseAt(pt);else cur.p.push(pt)}draw()});
 document.addEventListener('pointerup',()=>{if(!cur)return;cur=null;const p=page();p.ts=Date.now();save()});
 document.addEventListener('pointercancel',()=>{cur=null});
-function eraseAt(pt){const p=page(),R=250;const n=p.k.length;p.k=p.k.filter(s=>!s.p.some(q=>Math.abs(q[0]-pt[0])<R&&Math.abs(q[1]-pt[1])<R));if(p.k.length!==n)draw()}
+function eraseAt(pt){const p=page(),R=280,R2=R*R;const pts=[];const lp=cur&&cur.lp;
+ if(lp){const d=Math.hypot(pt[0]-lp[0],pt[1]-lp[1]),n=Math.ceil(d/(R/2));for(let j=1;j<=n;j++)pts.push([lp[0]+(pt[0]-lp[0])*j/n,lp[1]+(pt[1]-lp[1])*j/n])}else pts.push(pt);if(cur)cur.lp=pt;
+ const hit=q=>pts.some(e=>(q[0]-e[0])**2+(q[1]-e[1])**2<R2);let ch=false;const out=[];
+ for(const st of p.k){if(!st.p.some(hit)){out.push(st);continue}ch=true;let seg=[];for(const q of st.p){if(hit(q)){if(seg.length>1)out.push({...st,p:seg});seg=[]}else seg.push(q)}if(seg.length>1)out.push({...st,p:seg})}
+ if(ch){p.k=out;draw()}}
 document.addEventListener('touchmove',e=>{if(S.mode==='pen'&&e.target.id==='cv')e.preventDefault()},{passive:false});
 
 
