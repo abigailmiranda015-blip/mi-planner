@@ -63,10 +63,12 @@ body.pen .obj{pointer-events:none}
 .tbl .grip{display:none;align-items:center;justify-content:center;gap:6px;height:30px;font:700 11px 'DM Sans';letter-spacing:.15em;color:var(--fu);cursor:grab;touch-action:none}
 .obj.sel .tbl .grip{display:flex}
 .tbl table{width:100%;border-collapse:collapse;table-layout:fixed}
-.tbl td{border:1.5px solid #C9A9B3;padding:4px 8px;min-height:40px;height:40px;vertical-align:top;font:500 22px/1.3 'Caveat',cursive;color:var(--tx);outline:0;word-break:break-word;-webkit-user-select:text;user-select:text;touch-action:auto;cursor:text}
+.tbl{--z:1;position:relative}.tbl td{border:1.5px solid #C9A9B3;padding:calc(4px*var(--z)) calc(8px*var(--z));height:calc(40px*var(--z));vertical-align:top;font:500 calc(22px*var(--z))/1.3 'Caveat',cursive;color:var(--tx);outline:0;word-break:break-word;-webkit-user-select:text;user-select:text;touch-action:auto;cursor:text}
 .tbl tr:first-child td{background:rgba(242,182,201,.45);font-weight:700}
 .tbl td:focus{background:rgba(169,195,194,.3)}
-.f-normal .tbl td{font:400 16px/1.4 'DM Sans',sans-serif}
+.f-normal .tbl td{font:400 calc(16px*var(--z))/1.4 'DM Sans',sans-serif}
+.tbl .rsz{display:none;position:absolute;right:-16px;bottom:-16px;width:40px;height:40px;border-radius:50%;background:var(--fu);color:#fff;align-items:center;justify-content:center;font-size:18px;box-shadow:0 3px 10px rgba(0,0,0,.25);touch-action:none;cursor:nwse-resize}
+.obj.sel .tbl .rsz{display:flex}
 .tsz{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .tsz button{height:60px;border-radius:12px;background:#fff;font-size:17px;font-weight:500}
 .otb{flex-wrap:wrap;justify-content:center;max-width:94vw}
@@ -280,7 +282,7 @@ document.addEventListener('touchmove',e=>{if(S.mode==='pen'&&e.target.id==='cv')
 /* fotos y stickers */
 S.urls=(()=>{try{return JSON.parse(localStorage.getItem('cq_urls'))||{}}catch(e){return{}}})();S.sel=null;
 async function urlOf(path){const c=S.urls[path];if(c&&c.e>Date.now())return c.u;const{data,error}=await SB.storage.from('planner').createSignedUrl(path,60*60*24*7);if(error)throw error;S.urls[path]={u:data.signedUrl,e:Date.now()+1000*60*60*24*6};try{localStorage.setItem('cq_urls',JSON.stringify(S.urls))}catch(e){}return data.signedUrl}
-function tblHTML(o){return`<div class="tbl"><div class="grip" data-grip="1">⠿ MOVER</div><table>${o.rows.map((row,r)=>`<tr>${row.map((v,c)=>`<td contenteditable="true" data-r="${r}" data-c="${c}">${esc(v).replace(/\n/g,'<br>')}</td>`).join('')}</tr>`).join('')}</table></div>`}
+function tblHTML(o){return`<div class="tbl" style="--z:${o.z||1}"><div class="rsz" data-rsz="1">⤡</div><div class="grip" data-grip="1">⠿ MOVER</div><table>${o.rows.map((row,r)=>`<tr>${row.map((v,c)=>`<td contenteditable="true" data-r="${r}" data-c="${c}">${esc(v).replace(/\n/g,'<br>')}</td>`).join('')}</tr>`).join('')}</table></div>`}
 function objHTML(o){const inner=o.t==='tbl'?tblHTML(o):o.t==='img'?`<img alt="" data-path="${esc(o.path)}">`:o.t==='aud'?`<div class="aud">${I.mic}<audio controls preload="none" data-apath="${esc(o.path)}"></audio><button class="adel" data-a="odelid" data-v="${o.id}" aria-label="Borrar audio">✕</button></div>`:stHTML(o.k,o.c);
  return`<div class="obj ${S.sel===o.id?'sel':''}" data-o="${o.id}" style="left:${o.x/100}%;top:0;width:${o.t==='st'&&o.k.startsWith('t:')?'auto':o.w/100+'%'};transform:translateY(${0}px) rotate(${o.r||0}deg)">${inner}</div>`}
 function renderObjs(){const L=$('#objs');if(!L)return;const p=page();p.s=p.s||[];L.innerHTML=p.s.map(objHTML).join('');placeObjs();
@@ -291,7 +293,8 @@ function placeObjs(){const sh=$('#sheet');if(!sh)return;const W=sh.clientWidth;f
 function addObj(o){const p=page();p.s=p.s||[];const wrap=$('#wrap'),sh=$('#sheet'),W=sh.clientWidth;const yView=(wrap.scrollTop+wrap.clientHeight*0.3)*10000/W;
  const jit=(p.s.length%4)*700;Object.assign(o,{id:uid(),x:Math.round(5000-(o.t==='st'&&o.k.startsWith('t:')?1300:o.w/2)+jit-1000),y:Math.round(yView+jit),r:o.t==='img'?-2:(o.t==='aud'||o.t==='tbl')?0:Math.round(Math.random()*16-8)});p.s.push(o);S.sel=o.id;p.ts=Date.now();save();if(S.mode==='pen'){S.mode='kb';render()}else renderObjs()}
 function objAct(a){const p=page(),i=p.s.findIndex(o=>o.id===S.sel);if(i<0)return;const o=p.s[i];
- if(a==='obig')o.w=Math.min(9500,Math.round(o.w*1.2));if(a==='osmall')o.w=Math.max(500,Math.round(o.w/1.2));if(a==='orot')o.r=((o.r||0)+15)%360;
+ if(o.t==='tbl'){if(a==='obig'){o.z=Math.min(3,(o.z||1)*1.2);o.w=Math.min(9800,Math.round(o.w*1.2))}if(a==='osmall'){o.z=Math.max(.6,(o.z||1)/1.2);o.w=Math.max(1500,Math.round(o.w/1.2))}}if(o.t==='tbl'&&o.x+o.w>9900)o.x=Math.max(100,9900-o.w);
+ else{if(a==='obig')o.w=Math.min(9500,Math.round(o.w*1.2));if(a==='osmall')o.w=Math.max(500,Math.round(o.w/1.2))}if(a==='orot')o.r=((o.r||0)+15)%360;
  if(o.t==='tbl'){const lc=S.cell&&S.cell.id===o.id?S.cell:null,R=o.rows.length,C=o.rows[0].length;
   if(a==='trow'){const at=lc?lc.r+1:R;o.rows.splice(at,0,Array(C).fill(''))}
   if(a==='tcol'){const at=lc?lc.c+1:C;o.rows.forEach(row=>row.splice(at,0,''))}
@@ -303,10 +306,12 @@ function objAct(a){const p=page(),i=p.s.findIndex(o=>o.id===S.sel);if(i<0)return
 let drag=null;
 document.addEventListener('pointerdown',e=>{if(e.target.closest&&e.target.closest('audio,.adel'))return;const el=e.target.closest&&e.target.closest('.obj');if(!el){if(S.sel&&!e.target.closest('.otb')){S.sel=null;renderObjs()}return}
  const o=page().s.find(x=>x.id===el.dataset.o);if(!o)return;
+ if(o.t==='tbl'&&e.target.closest('[data-rsz]')){e.preventDefault();const W=$('#sheet').clientWidth;drag={o,sx:e.clientX,sy:e.clientY,w0:o.w,z0:o.z||1,k:10000/W,rs:true,moved:false};return}
  if(o.t==='tbl'&&!e.target.closest('[data-grip]')){if(S.sel!==o.id){S.sel=o.id;showTb()}return}
  e.preventDefault();if(S.sel!==o.id){S.sel=o.id;showTb()}
  const W=$('#sheet').clientWidth;drag={o,sx:e.clientX,sy:e.clientY,ox:o.x,oy:o.y,k:10000/W,moved:false};});
-document.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.sx,dy=e.clientY-drag.sy;if(Math.abs(dx)+Math.abs(dy)>3)drag.moved=true;drag.o.x=Math.round(drag.ox+dx*drag.k);drag.o.y=Math.max(0,Math.round(drag.oy+dy*drag.k));placeObjs()});
+document.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.sx,dy=e.clientY-drag.sy;if(Math.abs(dx)+Math.abs(dy)>3)drag.moved=true;
+ if(drag.rs){const w=Math.max(1500,Math.min(9800,Math.round(drag.w0+dx*drag.k)));drag.o.w=w;drag.o.z=Math.max(.6,Math.min(3,drag.z0*w/drag.w0));if(drag.o.x+w>9900)drag.o.x=Math.max(100,9900-w);const el=document.querySelector(`[data-o="${drag.o.id}"] .tbl`);if(el)el.style.setProperty('--z',drag.o.z);placeObjs();return}drag.o.x=Math.round(drag.ox+dx*drag.k);drag.o.y=Math.max(0,Math.round(drag.oy+dy*drag.k));placeObjs()});
 document.addEventListener('pointerup',()=>{if(!drag)return;if(drag.moved){page().ts=Date.now();save();fit()}drag=null});
 document.addEventListener('change',async e=>{if(e.target.id!=='fi')return;const f=e.target.files[0];e.target.value='';if(!f)return;toast('Subiendo foto…');
  try{const blob=await shrink(f);const path=S.uid+'/cuaderno/'+Date.now().toString(36)+uid()+'.jpg';const{error}=await SB.storage.from('planner').upload(path,blob,{contentType:'image/jpeg',upsert:false});if(error)throw error;addObj({t:'img',path,w:4200})}catch(err){toast('No pude subir la foto. Intenta otra vez.')}});
